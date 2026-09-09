@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SubSync Pro - Movie Subtitle Synchronizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #007acc;
+            --primary-dark: #005a9f;
+            --secondary: #ff6b35;
+            --bg-dark: #1a1a1a;
+            --bg-medium: #2d2d2d;
+            --bg-light: #3d3d3d;
+            --text-light: #ffffff;
+            --text-muted: #cccccc;
+            --border: #4a4a4a;
+            --success: #4caf50;
+            --warning: #ff9800;
+            --error: #f44336;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--bg-dark), #0f0f0f);
+            color: var(--text-light);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 0 4px 8px rgba(0, 122, 204, 0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            -webkit-text-fill-color: var(--text-muted);
+        }
+
+        .main-panel {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .video-section {
+            background: var(--bg-medium);
+            border-radius: 15px;
+            padding: 30px;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .controls-panel {
+            background: var(--bg-medium);
+            border-radius: 15px;
+            padding: 30px;
+            border: 1px solid var(--border);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .file-upload {
+            border: 2px dashed var(--border);
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .file-upload:hover {
+            border-color: var(--primary);
+            background: rgba(0, 122, 204, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .file-upload.dragover {
+            border-color: var(--secondary);
+            background: rgba(255, 107, 53, 0.1);
+        }
+
+        .file-upload input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        video {
+            width: 100%;
+            border-radius: 10px;
+            background: #000;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+        }
+
+        .timeline-container {
+            background: var(--bg-light);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+            border: 1px solid var(--border);
+        }
+
+        .timeline {
+            position: relative;
+            height: 200px;
+            background: linear-gradient(to bottom, #2a2a2a, #1a1a1a);
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .timeline-ruler {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: var(--bg-dark);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .time-marker {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--primary);
+            z-index: 10;
+            transition: left 0.1s ease;
+        }
+
+        .time-marker::after {
+            content: attr(data-time);
+            position: absolute;
+            top: -25px;
+            left: -20px;
+            background: var(--primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            white-space: nowrap;
+        }
+
+        .subtitle-track {
+            position: absolute;
+            top: 40px;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: rgba(0, 122, 204, 0.1);
+            border-top: 1px solid var(--border);
+        }
+
+        .subtitle-block {
+            position: absolute;
+            top: 5px;
+            height: 50px;
+            background: linear-gradient(45deg, var(--primary), var(--primary-dark));
+            border-radius: 4px;
+            cursor: move;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            font-size: 11px;
+            color: white;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .subtitle-block:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 122, 204, 0.4);
+        }
+
+        .subtitle-block.selected {
+            border-color: var(--secondary);
+            box-shadow: 0 0 15px rgba(255, 107, 53, 0.6);
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: var(--bg-light);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .control-group h3 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            align-items: center;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 122, 204, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, var(--secondary), #e55a2b);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+        }
+
+        .btn-small {
+            padding: 8px 15px;
+            font-size: 12px;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .input-group label {
+            min-width: 80px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        input[type="number"], input[type="range"] {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            color: var(--text-light);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            width: 100px;
+        }
+
+        input[type="range"] {
+            width: 200px;
+            -webkit-appearance: none;
+            height: 6px;
+            background: var(--bg-dark);
+            outline: none;
+            border-radius: 3px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 122, 204, 0.4);
+        }
+
+        .subtitle-display {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 500;
+            text-align: center;
+            max-width: 80%;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+        }
+
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            background: var(--bg-light);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .export-section {
+            background: var(--bg-medium);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+            border: 1px solid var(--border);
+        }
+
+        .progress-bar {
+            background: var(--bg-dark);
+            border-radius: 10px;
+            overflow: hidden;
+            height: 8px;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transition: width 0.3s ease;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.success { background: var(--success); }
+        .notification.warning { background: var(--warning); }
+        .notification.error { background: var(--error); }
+
+        @media (max-width: 1024px) {
+            .main-panel {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+
+        .waveform {
+            position: absolute;
+            top: 110px;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: rgba(0, 122, 204, 0.1);
+            border-top: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .waveform-bar {
+            position: absolute;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to top, var(--primary), rgba(0, 122, 204, 0.3));
+            opacity: 0.7;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>SubSync Pro</h1>
+            <p>Professional Movie Subtitle Synchronizer</p>
+        </header>
+
+        <div class="main-panel">
+            <div class="video-section">
+                <div class="file-upload" id="videoUpload">
+                    <input type="file" id="videoFile" accept="video/*">
+                    <span class="upload-icon">🎬</span>
+                    <h3>Drop your video file here</h3>
+                    <p>or click to browse (MP4, AVI, MOV, WebM)</p>
+                </div>
+
+                <video id="videoPlayer" controls style="display: none;">
+                    Your browser does not support the video tag.
+                </video>
+
+                <div class="subtitle-display" id="subtitleDisplay" style="display: none;"></div>
+
+                <div class="loading" id="loadingIndicator">
+                    <div class="spinner"></div>
+                    <p>Processing video...</p>
+                </div>
+            </div>
+
+            <div class="controls-panel">
+                <div class="control-group">
+                    <h3>📁 Subtitle File</h3>
+                    <div class="file-upload" id="srtUpload">
+                        <input type="file" id="srtFile" accept=".srt">
+                        <span class="upload-icon">📝</span>
+                        <p>Upload SRT file</p>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>⏱️ Global Timing</h3>
+                    <div class="input-group">
+                        <label>Offset:</label>
+                        <input type="number" id="globalOffset" value="0" step="0.1" min="-60" max="60">
+                        <span>sec</span>
+                    </div>
+                    <div class="input-group">
+                        <label>Speed:</label>
+                        <input type="range" id="speedAdjust" min="0.5" max="2" step="0.01" value="1">
+                        <span id="speedValue">1.00x</span>
+                    </div>
+                    <div class="control-row">
+                        <button class="btn btn-small" onclick="adjustTiming(-0.5)">-0.5s</button>
+                        <button class="btn btn-small" onclick="adjustTiming(-0.1)">-0.1s</button>
+                        <button class="btn btn-small" onclick="adjustTiming(0.1)">+0.1s</button>
+                        <button class="btn btn-small" onclick="adjustTiming(0.5)">+0.5s</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h3>🎯 Precision Tools</h3>
+                    <div class="control-row">
+                        <button class="btn btn-secondary" onclick="markSyncPoint()">Mark Sync Point</button>
+                    </div>
+                    <div class="control-row">
+                        <button class="btn" onclick="autoSync()">Auto Sync</button>
+                        <button class="btn" onclick="resetTiming()">Reset</button>
+                    </div>
+                </div>
+
+                <div class="stats-panel">
+                    <div class="stat-item">
+                        <div class="stat-value" id="subtitleCount">0</div>
+                        <div class="stat-label">Subtitles</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="videoDuration">0:00</div>
+                        <div class="stat-label">Duration</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="syncAccuracy">100%</div>
+                        <div class="stat-label">Accuracy</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="timeline-container">
+            <h3>🎞️ Timeline Editor</h3>
+            <div class="timeline" id="timeline">
+                <div class="timeline-ruler"></div>
+                <div class="time-marker" id="timeMarker" data-time="00:00"></div>
+                <div class="subtitle-track" id="subtitleTrack"></div>
+                <div class="waveform" id="waveform"></div>
+            </div>
+            
+            <div class="control-row">
+                <button class="btn" onclick="playPause()">⏯️ Play/Pause</button>
+                <button class="btn" onclick="stepBackward()">⏪ -1s</button>
+                <button class="btn" onclick="stepForward()">⏩ +1s</button>
+                <button class="btn btn-secondary" onclick="zoomTimeline(2)">🔍 Zoom In</button>
+                <button class="btn btn-secondary" onclick="zoomTimeline(0.5)">🔍 Zoom Out</button>
+            </div>
+        </div>
+
+        <div class="export-section">
+            <h3>💾 Export Options</h3>
+            <div class="control-row">
+                <button class="btn" onclick="exportSRT()">📄 Export SRT</button>
+                <button class="btn" onclick="exportVTT()">📄 Export VTT</button>
+                <button class="btn btn-secondary" onclick="previewSync()">👁️ Preview</button>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="exportProgress" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class SubSyncPro {
+            constructor() {
+                this.video = document.getElementById('videoPlayer');
+                this.timeline = document.getElementById('timeline');
+                this.timeMarker = document.getElementById('timeMarker');
+                this.subtitleTrack = document.getElementById('subtitleTrack');
+                this.subtitleDisplay = document.getElementById('subtitleDisplay');
+                
+                this.subtitles = [];
+                this.currentSubtitle = null;
+                this.selectedSubtitle = null;
+                this.syncPoints = [];
+                this.zoomLevel = 1;
+                this.timelineWidth = 0;
+                
+                this.initEventListeners();
+                this.generateWaveform();
+            }
+
+            initEventListeners() {
+                // File uploads
+                document.getElementById('videoFile').addEventListener('change', (e) => this.loadVideo(e));
+                document.getElementById('srtFile').addEventListener('change', (e) => this.loadSRT(e));
+                
+                // Video events
+                this.video.addEventListener('timeupdate', () => this.updateTimeline());
+                this.video.addEventListener('loadedmetadata', () => this.videoLoaded());
+                
+                // Timeline interaction
+                this.timeline.addEventListener('click', (e) => this.seekToTime(e));
+                this.timeline.addEventListener('mousedown', (e) => this.startDragging(e));
+                
+                // Global offset and speed controls
+                document.getElementById('globalOffset').addEventListener('input', () => this.applyGlobalOffset());
+                document.getElementById('speedAdjust').addEventListener('input', (e) => this.adjustSpeed(e));
+                
+                // Drag and drop
+                this.setupDragAndDrop();
+            }
+
+            setupDragAndDrop() {
+                const videoUpload = document.getElementById('videoUpload');
+                const srtUpload = document.getElementById('srtUpload');
+                
+                [videoUpload, srtUpload].forEach(upload => {
+                    upload.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        upload.classList.add('dragover');
+                    });
+                    
+                    upload.addEventListener('dragleave', () => {
+                        upload.classList.remove('dragover');
+                    });
+                    
+                    upload.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        upload.classList.remove('dragover');
+                        const file = e.dataTransfer.files[0];
+                        
+                        if (upload.id === 'videoUpload' && file.type.startsWith('video/')) {
+                            this.loadVideoFile(file);
+                        } else if (upload.id === 'srtUpload' && file.name.endsWith('.srt')) {
+                            this.loadSRTFile(file);
+                        }
+                    });
+                });
+            }
+
+            loadVideo(event) {
+                const file = event.target.files[0];
+                if (file) this.loadVideoFile(file);
+            }
+
+            loadVideoFile(file) {
+                const url = URL.createObjectURL(file);
+                this.video.src = url;
+                this.video.style.display = 'block';
+                document.getElementById('videoUpload').style.display = 'none';
+                document.getElementById('loadingIndicator').style.display = 'block';
+                
+                setTimeout(() => {
+                    document.getElementById('loadingIndicator').style.display = 'none';
+                    this.showNotification('Video loaded successfully!', 'success');
+                }, 1500);
+            }
+
+            videoLoaded() {
+                const duration = this.formatTime(this.video.duration);
+                document.getElementById('videoDuration').textContent = duration;
+                this.timelineWidth = this.timeline.offsetWidth;
+                this.generateWaveform();
+            }
+
+            loadSRT(event) {
+                const file = event.target.files[0];
+                if (file) this.loadSRTFile(file);
+            }
+
+            loadSRTFile(file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    this.parseSRT(e.target.result);
+                    this.showNotification('Subtitles loaded successfully!', 'success');
+                };
+                reader.readAsText(file);
+            }
+
+            parseSRT(content) {
+                const blocks = content.trim().split('\n\n');
+                this.subtitles = [];
+                
+                blocks.forEach(block => {
+                    const lines = block.split('\n');
+                    if (lines.length >= 3) {
+                        const timeMatch = lines[1].match(/(\d{2}):(\d{2}):(\d{2}),(\d{3}) --> (\d{2}):(\d{2}):(\d{2}),(\d{3})/);
+                        if (timeMatch) {
+                            const startTime = this.parseTime(timeMatch.slice(1, 5));
+                            const endTime = this.parseTime(timeMatch.slice(5, 9));
+                            const text = lines.slice(2).join('\n');
+                            
+                            this.subtitles.push({
+                                id: parseInt(lines[0]),
+                                startTime,
+                                endTime,
+                                text,
+                                originalStartTime: startTime,
+                                originalEndTime: endTime
+                            });
+                        }
+                    }
+                });
+                
+                document.getElementById('subtitleCount').textContent = this.subtitles.length;
+                this.renderSubtitleBlocks();
+            }
+
+            parseTime(timeArray) {
+                const [h, m, s, ms] = timeArray.map(Number);
+                return h * 3600 + m * 60 + s + ms / 1000;
+            }
+
+            formatTime(seconds) {
+                const h = Math.floor(seconds / 3600);
+                const m = Math.floor((seconds % 3600) / 60);
+                const s = Math.floor(seconds % 60);
+                return h > 0 ? `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}` 
+                             : `${m}:${s.toString().padStart(2, '0')}`;
+            }
+
+            renderSubtitleBlocks() {
+                this.subtitleTrack.innerHTML = '';
+                
+                this.subtitles.forEach((subtitle, index) => {
+                    const block = document.createElement('div');
+                    block.className = 'subtitle-block';
+                    block.textContent = subtitle.text.substring(0, 30) + (subtitle.text.length > 30 ? '...' : '');
+                    
+                    const startPercent = (subtitle.startTime / this.video.duration) * 100;
+                    const widthPercent = ((subtitle.endTime - subtitle.startTime) / this.video.duration) * 100;
+                    
+                    block.style.left = `${startPercent}%`;
+                    block.style.width = `${widthPercent}%`;
+                    
+                    block.addEventListener('click', () => this.selectSubtitle(index));
+                    block.addEventListener('mousedown', (e) => this.startDraggingSubtitle(e, index));
+                    
+                    this.subtitleTrack.appendChild(block);
+                });
+            }
+
+            updateTimeline() {
+                const currentTime = this.video.currentTime;
+                const duration = this.video.duration;
+                
+                if (duration) {
+                    const percent = (currentTime / duration) * 100;
+                    this.timeMarker.style.left = `${percent}%`;
+                    this.timeMarker.setAttribute('data-time', this.formatTime(currentTime));
+                }
+                
+                // Update current subtitle
+                this.updateCurrentSubtitle(currentTime);
+            }
+
+            updateCurrentSubtitle(currentTime) {
+                const activeSubtitle = this.subtitles.find(sub => 
+                    currentTime >= sub.startTime && currentTime <= sub.endTime
+                );
+                
+                if (activeSubtitle && activeSubtitle !== this.currentSubtitle) {
+                    this.currentSubtitle = activeSubtitle;
+                    this.subtitleDisplay.textContent = activeSubtitle.text;
+                    this.subtitleDisplay.style.display = 'block';
+                } else if (!activeSubtitle && this.currentSubtitle) {
+                    this.currentSubtitle = null;
+                    this.subtitleDisplay.style.display = 'none';
+                }
+            }
+
+            seekToTime(event) {
+                if (!this.video.duration) return;
+                
+                const rect = this.timeline.getBoundingClientRect();
+                const percent = (event.clientX - rect.left) / rect.width;
+                const time = percent * this.video.duration;
+                
+                this.video.currentTime = Math.max(0, Math.min(time, this.video.duration));
+            }
+
+            selectSubtitle(index) {
+                // Remove previous selection
+                document.querySelectorAll('.subtitle-block').forEach(block => {
+                    block.classList.remove('selected');
+                });
+                
+                // Select new subtitle
+                this.selectedSubtitle = index;
+                document.querySelectorAll('.subtitle-block')[index].classList.add('selected');
+                
+                // Jump to subtitle time
+                this.video.currentTime = this.subtitles[index].startTime;
+            }
+
+            adjustTiming(offset) {
+                if (this.selectedSubtitle !== null) {
+                    // Adjust selected subtitle
+                    const subtitle = this.subtitles[this.selectedSubtitle];
+                    subtitle.startTime += offset;
+                    subtitle.endTime += offset;
+                    this.renderSubtitleBlocks();
+                    this.showNotification(`Adjusted subtitle by ${offset}s`, 'success');
+                } else {
+                    // Adjust all subtitles
+                    document.getElementById('globalOffset').value = 
+                        parseFloat(document.getElementById('globalOffset').value) + offset;
+                    this.applyGlobalOffset();
+                }
+            }
+
+            applyGlobalOffset() {
+                const offset = parseFloat(document.getElementById('globalOffset').value);
+                
+                this.subtitles.forEach(subtitle => {
+                    subtitle.startTime = subtitle.originalStartTime + offset;
+                    subtitle.endTime = subtitle.originalEndTime + offset;
+                });
+                
+                this.renderSubtitleBlocks();
+                this.calculateSyncAccuracy();
+            }
+
+            adjustSpeed(event) {
+                const speed = parseFloat(event.target.value);
+                document.getElementById('speedValue').textContent = speed.toFixed(2) + 'x';
+                
+                this.subtitles.forEach(subtitle => {
+                    subtitle.startTime = subtitle.originalStartTime / speed;
+                    subtitle.endTime = subtitle.originalEndTime / speed;
+                });
+                
+                this.renderSubtitleBlocks();
+                this.calculateSyncAccuracy();
+            }
+
+            markSyncPoint() {
+                if (!this.video.currentTime || this.selectedSubtitle === null) {
+                    this.showNotification('Select a subtitle and set video time first', 'warning');
+                    return;
+                }
+                
+                const currentTime = this.video.currentTime;
+                const subtitle = this.subtitles[this.selectedSubtitle];
+                const offset = currentTime - subtitle.originalStartTime;
+                
+                this.syncPoints.push({
+                    videoTime: currentTime,
+                    subtitleIndex: this.selectedSubtitle,
+                    offset: offset
+                });
+                
+                subtitle.startTime = currentTime;
+                subtitle.endTime = currentTime + (subtitle.originalEndTime - subtitle.originalStartTime);
+                
+                this.renderSubtitleBlocks();
+                this.showNotification('Sync point marked successfully!', 'success');
+            }
+
+            autoSync() {
+                if (this.syncPoints.length < 2) {
+                    this.showNotification('Need at least 2 sync points for auto-sync', 'warning');
+                    return;
+                }
+                
+                // Calculate linear interpolation between sync points
+                const firstPoint = this.syncPoints[0];
+                const lastPoint = this.syncPoints[this.syncPoints.length - 1];
+                
+                const timeSpan = lastPoint.videoTime - firstPoint.videoTime;
+                const offsetDiff = lastPoint.offset - firstPoint.offset;
+                
+                this.subtitles.forEach((subtitle, index) => {
+                    if (index >= firstPoint.subtitleIndex && index <= lastPoint.subtitleIndex) {
+                        const progress = (index - firstPoint.subtitleIndex) / (lastPoint.subtitleIndex - firstPoint.subtitleIndex);
+                        const interpolatedOffset = firstPoint.offset + (offsetDiff * progress);
+                        
+                        subtitle.startTime = subtitle.originalStartTime + interpolatedOffset;
+                        subtitle.endTime = subtitle.originalEndTime + interpolatedOffset;
+                    }
+                });
+                
+                this.renderSubtitleBlocks();
+                this.calculateSyncAccuracy();
+                this.showNotification('Auto-sync completed!', 'success');
+            }
+
+            resetTiming() {
+                this.subtitles.forEach(subtitle => {
+                    subtitle.startTime = subtitle.originalStartTime;
+                    subtitle.endTime = subtitle.originalEndTime;
+                });
+                
+                document.getElementById('globalOffset').value = 0;
+                document.getElementById('speedAdjust').value = 1;
+                document.getElementById('speedValue').textContent = '1.00x';
+                this.syncPoints = [];
+                
+                this.renderSubtitleBlocks();
+                this.calculateSyncAccuracy();
+                this.showNotification('Timing reset to original', 'success');
+            }
+
+            calculateSyncAccuracy() {
+                // Simple accuracy calculation based on sync points
+                let accuracy = 100;
+                if (this.syncPoints.length > 0) {
+                    const avgOffset = this.syncPoints.reduce((sum, point) => sum + Math.abs(point.offset), 0) / this.syncPoints.length;
+                    accuracy = Math.max(0, 100 - (avgOffset * 20));
+                }
+                document.getElementById('syncAccuracy').textContent = Math.round(accuracy) + '%';
+            }
+
+            startDraggingSubtitle(event, index) {
+                event.stopPropagation();
+                this.selectSubtitle(index);
+                
+                const startX = event.clientX;
+                const startTime = this.subtitles[index].startTime;
+                const duration = this.subtitles[index].endTime - this.subtitles[index].startTime;
+                
+                const onMouseMove = (e) => {
+                    const deltaX = e.clientX - startX;
+                    const deltaTime = (deltaX / this.timelineWidth) * this.video.duration;
+                    
+                    this.subtitles[index].startTime = Math.max(0, startTime + deltaTime);
+                    this.subtitles[index].endTime = this.subtitles[index].startTime + duration;
+                    
+                    this.renderSubtitleBlocks();
+                };
+                
+                const onMouseUp = () => {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                    this.calculateSyncAccuracy();
+                };
+                
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+            }
+
+            generateWaveform() {
+                const waveform = document.getElementById('waveform');
+                waveform.innerHTML = '';
+                
+                // Generate pseudo-waveform for visual appeal
+                for (let i = 0; i < 200; i++) {
+                    const bar = document.createElement('div');
+                    bar.className = 'waveform-bar';
+                    bar.style.left = `${(i / 200) * 100}%`;
+                    bar.style.height = `${Math.random() * 60 + 10}px`;
+                    waveform.appendChild(bar);
+                }
+            }
+
+            zoomTimeline(factor) {
+                this.zoomLevel *= factor;
+                this.zoomLevel = Math.max(0.1, Math.min(this.zoomLevel, 10));
+                
+                // Apply zoom transformation to timeline content
+                const timelineContent = this.timeline.querySelector('.subtitle-track');
+                timelineContent.style.transform = `scaleX(${this.zoomLevel})`;
+                
+                this.showNotification(`Zoom: ${(this.zoomLevel * 100).toFixed(0)}%`, 'success');
+            }
+
+            playPause() {
+                if (this.video.paused) {
+                    this.video.play();
+                } else {
+                    this.video.pause();
+                }
+            }
+
+            stepBackward() {
+                this.video.currentTime = Math.max(0, this.video.currentTime - 1);
+            }
+
+            stepForward() {
+                this.video.currentTime = Math.min(this.video.duration, this.video.currentTime + 1);
+            }
+
+            exportSRT() {
+                if (this.subtitles.length === 0) {
+                    this.showNotification('No subtitles to export', 'warning');
+                    return;
+                }
+                
+                this.simulateExport('SRT');
+                
+                let srtContent = '';
+                this.subtitles.forEach((subtitle, index) => {
+                    const startTime = this.formatSRTTime(subtitle.startTime);
+                    const endTime = this.formatSRTTime(subtitle.endTime);
+                    
+                    srtContent += `${index + 1}\n`;
+                    srtContent += `${startTime} --> ${endTime}\n`;
+                    srtContent += `${subtitle.text}\n\n`;
+                });
+                
+                const blob = new Blob([srtContent], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'synced_subtitles.srt';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            exportVTT() {
+                if (this.subtitles.length === 0) {
+                    this.showNotification('No subtitles to export', 'warning');
+                    return;
+                }
+                
+                this.simulateExport('VTT');
+                
+                let vttContent = 'WEBVTT\n\n';
+                this.subtitles.forEach((subtitle) => {
+                    const startTime = this.formatVTTTime(subtitle.startTime);
+                    const endTime = this.formatVTTTime(subtitle.endTime);
+                    
+                    vttContent += `${startTime} --> ${endTime}\n`;
+                    vttContent += `${subtitle.text}\n\n`;
+                });
+                
+                const blob = new Blob([vttContent], { type: 'text/vtt' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'synced_subtitles.vtt';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            formatSRTTime(seconds) {
+                const h = Math.floor(seconds / 3600);
+                const m = Math.floor((seconds % 3600) / 60);
+                const s = Math.floor(seconds % 60);
+                const ms = Math.floor((seconds % 1) * 1000);
+                
+                return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')},${ms.toString().padStart(3, '0')}`;
+            }
+
+            formatVTTTime(seconds) {
+                const h = Math.floor(seconds / 3600);
+                const m = Math.floor((seconds % 3600) / 60);
+                const s = Math.floor(seconds % 60);
+                const ms = Math.floor((seconds % 1) * 1000);
+                
+                return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
+            }
+
+            simulateExport(format) {
+                const progressBar = document.getElementById('exportProgress');
+                let progress = 0;
+                
+                const interval = setInterval(() => {
+                    progress += Math.random() * 20;
+                    progressBar.style.width = `${Math.min(progress, 100)}%`;
+                    
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        setTimeout(() => {
+                            progressBar.style.width = '0%';
+                            this.showNotification(`${format} exported successfully!`, 'success');
+                        }, 500);
+                    }
+                }, 100);
+            }
+
+            previewSync() {
+                if (!this.video.src || this.subtitles.length === 0) {
+                    this.showNotification('Load video and subtitles first', 'warning');
+                    return;
+                }
+                
+                this.video.currentTime = 0;
+                this.video.play();
+                this.showNotification('Preview started - watch sync quality', 'success');
+            }
+
+            showNotification(message, type = 'success') {
+                // Remove existing notification
+                const existing = document.querySelector('.notification');
+                if (existing) existing.remove();
+                
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                // Trigger animation
+                setTimeout(() => notification.classList.add('show'), 10);
+                
+                // Auto remove
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
+            }
+        }
+
+        // Global functions for button events
+        let app;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            app = new SubSyncPro();
+        });
+
+        function adjustTiming(offset) {
+            app.adjustTiming(offset);
+        }
+
+        function markSyncPoint() {
+            app.markSyncPoint();
+        }
+
+        function autoSync() {
+            app.autoSync();
+        }
+
+        function resetTiming() {
+            app.resetTiming();
+        }
+
+        function playPause() {
+            app.playPause();
+        }
+
+        function stepBackward() {
+            app.stepBackward();
+        }
+
+        function stepForward() {
+            app.stepForward();
+        }
+
+        function zoomTimeline(factor) {
+            app.zoomTimeline(factor);
+        }
+
+        function exportSRT() {
+            app.exportSRT();
+        }
+
+        function exportVTT() {
+            app.exportVTT();
+        }
+
+        function previewSync() {
+            app.previewSync();
+        }
+    </script>
+</body>
+</html>
